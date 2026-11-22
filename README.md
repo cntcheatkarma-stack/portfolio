@@ -1,6 +1,6 @@
 # Portfolio
 
-Cybersecurity student and analyst with a background in high-pressure operations and team leadership. This repo collects my builds, tools, security analyses, and coursework. Each is written up as a short report: what it is, why I built it, how it works, and what I learned.
+Cybersecurity analyst currently completing a bachelor's degree in cybersecurity, with a background in high-pressure operations and team leadership. This repo collects my builds, tools, security analyses, and coursework. Each is written up as a short report: what it is, why I built it, how it works, and what I learned.
 
 ## Projects
 
@@ -31,6 +31,10 @@ Tools I'm designing next. See [concepts/](concepts/).
 ## Coursework
 
 Web development exercises (HTML, CSS, JavaScript). See [coursework/](coursework/).
+
+## Education
+
+- B.S. in Cybersecurity (in progress)
 
 ## Certifications
 
