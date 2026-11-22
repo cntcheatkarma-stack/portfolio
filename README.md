@@ -1,6 +1,6 @@
 # Portfolio
 
-Cybersecurity analyst currently completing a bachelor's degree in cybersecurity, with a background in high-pressure operations and team leadership. This repo collects my builds, tools, security analyses, and coursework. Each is written up as a short report: what it is, why I built it, how it works, and what I learned.
+Cybersecurity analyst currently completing a B.S. in Cybersecurity at SUNY Canton, with a background in high-pressure operations and team leadership. This repo collects my builds, tools, security analyses, and coursework. Each is written up as a short report: what it is, why I built it, how it works, and what I learned.
 
 ## Projects
 
@@ -34,7 +34,8 @@ Web development exercises (HTML, CSS, JavaScript). See [coursework/](coursework/
 
 ## Education
 
-- B.S. in Cybersecurity (in progress)
+- **B.S. in Cybersecurity**, SUNY Canton (in progress)
+  - Program designated an NSA National Center of Academic Excellence in Cyber Defense (CAE-CD)
 
 ## Certifications
 
