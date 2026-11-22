@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logic Lights</title>
+<style>
+  :root { --bg:#0d1110; --fg:#b9c7bd; --dim:#5d6b62; --on:#ffd24a; --gate:#6fd3c0; --bad:#ff7a6b; --ok:#8be28b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font-family: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+         font-size:16px; line-height:1.35; }
+  main { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+  h1 { font-size:1rem; margin:0; color:var(--on); letter-spacing:.15em; }
+  .bar { display:flex; flex-wrap:wrap; gap:.5rem 1.5rem; justify-content:space-between; color:var(--dim);
+         border-bottom:1px dashed var(--dim); padding-bottom:.6rem; }
+  #goal { margin:1.2rem 0 .4rem; }
+  .scroll { overflow-x:auto; padding:1rem 0; }
+  pre { margin:0; font:inherit; line-height:1.2; white-space:pre; width:max-content; }
+  pre button { font:inherit; line-height:inherit; color:var(--fg); background:none; border:0; padding:0; margin:0; cursor:pointer; }
+  pre button:hover, pre button:focus-visible { background:#24302b; outline:none; }
+  pre button.on, .on { color:var(--on); font-weight:bold; }
+  .off { color:var(--dim); }
+  .gate { color:var(--gate); }
+  #msg { min-height:2.8em; margin:.4rem 0 1rem; }
+  #msg.ok { color:var(--ok); } #msg.bad { color:var(--bad); }
+  .ctl button { font:inherit; color:var(--bg); background:var(--fg); border:0; padding:.45rem .9rem; margin-right:.5rem; cursor:pointer; }
+  .ctl button:hover, .ctl button:focus-visible { background:var(--on); outline:none; }
+  details { margin-top:2rem; color:var(--dim); }
+  summary { cursor:pointer; color:var(--fg); }
+  details pre { margin-top:.6rem; }
+</style>
+</head>
+<body>
+<main>
+  <div class="bar">
+    <h1>LOGIC LIGHTS</h1>
+    <span>level <b id="level">1</b> &nbsp; solved <b id="solved">0</b> &nbsp; checks <b id="checks">0</b></span>
+  </div>
+
+  <p id="goal">Switch the inputs so the OUT light turns on. Then press Check.</p>
+  <div class="scroll"><pre id="board" aria-live="polite"></pre></div>
+  <p id="msg"></p>
+
+  <div class="ctl">
+    <button id="check">Check [Enter]</button>
+    <button id="next">New circuit [N]</button>
+  </div>
+
+  <details>
+    <summary>How to play / gate rules</summary>
+<pre>
+Click an input like [A:0] to flip it (or press its letter).
+(?) is a hidden light. Check reveals them:  (*) on   ( ) off
+
+AND   on only when both inputs are on
+OR    on when at least one input is on
+XOR   on when exactly one input is on
+NAND  off only when both inputs are on
+NOR   on only when both inputs are off
+NOT   flips its input
+</pre>
+  </details>
+</main>
+
+<script>
+// ---------- circuit logic (no DOM) ----------
+const OPS = {
+  AND:  (a, b) => a & b,
+  OR:   (a, b) => a | b,
+  XOR:  (a, b) => a ^ b,
+  NAND: (a, b) => 1 - (a & b),
+  NOR:  (a, b) => 1 - (a | b),
+};
+const rand = n => Math.floor(Math.random() * n);
+const pick = arr => arr[rand(arr.length)];
+
+function evalNode(n, state) {
+  if (n.v) return state[n.v];
+  if (n.op === 'NOT') return 1 - evalNode(n.kids[0], state);
+  return OPS[n.op](evalNode(n.kids[0], state), evalNode(n.kids[1], state));
+}
+
+function genTree(gates, ops, parentIsNot) {
+  if (gates === 0) return { v: '?' };
+  if (ops.includes('NOT') && !parentIsNot && Math.random() < 0.22)
+    return { op: 'NOT', kids: [genTree(gates - 1, ops, true)] };
+  const left = rand(gates);
+  const bin = ops.filter(o => o !== 'NOT');
+  return { op: pick(bin), kids: [genTree(left, ops, false), genTree(gates - 1 - left, ops, false)] };
+}
+
+function leaves(n, out = []) {
+  if (n.v) out.push(n); else n.kids.forEach(k => leaves(k, out));
+  return out;
+}
+function countGates(n) { return n.v ? 0 : 1 + n.kids.reduce((s, k) => s + countGates(k), 0); }
+function hasTwinInputs(n) {
+  if (n.v) return false;
+  if (n.kids.length === 2 && n.kids[0].v && n.kids[0].v === n.kids[1].v) return true;
+  return n.kids.some(hasTwinInputs);
+}
+
+function levelConfig(level) {
+  return {
+    gates: Math.min(5, 3 + Math.floor((level - 1) / 2)),
+    ops: level <= 2 ? ['AND', 'OR'] : level <= 4 ? ['AND', 'OR', 'XOR', 'NOT'] : ['AND', 'OR', 'XOR', 'NAND', 'NOR', 'NOT'],
+    share: level >= 5,   // one input may feed two branches
+  };
+}
+
+function makePuzzle(level) {
+  const cfg = levelConfig(level);
+  for (;;) {
+    const tree = genTree(cfg.gates, cfg.ops, false);
+    const ls = leaves(tree);
+    const nVars = cfg.share && ls.length > 2 ? ls.length - 1 : ls.length;
+    const names = 'ABCDEFGH'.slice(0, nVars).split('');
+    // every variable used at least once, extras filled at random, then shuffled
+    const bag = names.concat(Array.from({ length: ls.length - nVars }, () => pick(names)));
+    for (let i = bag.length - 1; i > 0; i--) { const j = rand(i + 1); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    ls.forEach((l, i) => l.v = bag[i]);
+    if (hasTwinInputs(tree)) continue;
+
+    const all = [];
+    for (let m = 0; m < 1 << nVars; m++) {
+      const s = {}; names.forEach((v, i) => s[v] = (m >> i) & 1);
+      all.push(s);
+    }
+    const losing = all.filter(s => !evalNode(tree, s));
+    const wins = all.length - losing.length;
+    if (wins === 0 || wins > all.length / 2 || losing.length === 0) continue;   // solvable, not a giveaway
+    return { tree, names, state: { ...pick(losing) }, wins };
+  }
+}
+
+// ---------- ASCII drawing ----------
+function draw(n, state, reveal) {
+  if (n.v) return { lines: [`[${n.v}:${state[n.v]}]`], row: 0 };
+  const light = reveal ? (evalNode(n, state) ? '(*)' : '( )') : '(?)';
+  const tag = `-[${n.op}]-${light}`;
+  if (n.op === 'NOT') {
+    const c = draw(n.kids[0], state, reveal);
+    return { lines: c.lines.map((l, i) => l + (i === c.row ? tag : ' '.repeat(tag.length))), row: c.row };
+  }
+  const a = draw(n.kids[0], state, reveal), b = draw(n.kids[1], state, reveal);
+  const w = Math.max(a.lines[0].length, b.lines[0].length);
+  const pad = blk => blk.lines.map((l, i) => l.padEnd(w, i === blk.row ? '-' : ' '));
+  const body = [...pad(a), ' '.repeat(w), ...pad(b)];
+  const r1 = a.row, r2 = a.lines.length + 1 + b.row, mid = Math.floor((r1 + r2) / 2);
+  const lines = body.map((l, i) => {
+    if (i === mid) return l + ' +' + tag;
+    const wire = (i === r1 || i === r2) ? '-+' : (i > r1 && i < r2) ? ' |' : '  ';
+    return l + wire + ' '.repeat(tag.length);
+  });
+  return { lines, row: mid };
+}
+
+function drawCircuit(tree, state, reveal) {
+  const d = draw(tree, state, reveal);
+  return d.lines.map((l, i) => i === d.row ? l + '--> OUT' : l).map(l => l.trimEnd()).join('\n');
+}
+
+function toHtml(text) {
+  return text
+    .replace(/\[([A-H]):([01])\]/g, (m, v, b) =>
+      `<button class="${b === '1' ? 'on' : ''}" data-v="${v}" aria-label="input ${v}, ${b === '1' ? 'on' : 'off'}">${m}</button>`)
+    .replace(/\[(AND|OR|XOR|NAND|NOR|NOT)\]/g, '<span class="gate">$&</span>')
+    .replace(/\(\*\)/g, '<span class="on">(*)</span>')
+    .replace(/\( \)/g, '<span class="off">( )</span>')
+    .replace(/\(\?\)/g, '<span class="off">(?)</span>');
+}
+
+// ---------- game ----------
+if (typeof document !== 'undefined') {
+  const $ = id => document.getElementById(id);
+  let level = 1, solved = 0, checks = 0, puzzle, reveal = false, done = false;
+
+  function paint() {
+    $('board').innerHTML = toHtml(drawCircuit(puzzle.tree, puzzle.state, reveal));
+    $('level').textContent = level; $('solved').textContent = solved; $('checks').textContent = checks;
+  }
+  function say(text, cls) { $('msg').textContent = text; $('msg').className = cls || ''; }
+
+  function newPuzzle() {
+    puzzle = makePuzzle(level); reveal = false; done = false;
+    say(''); paint();
+  }
+  function toggle(v) {
+    if (done || !(v in puzzle.state)) return;
+    puzzle.state[v] ^= 1; reveal = false; say(''); paint();
+    const b = document.querySelector(`#board button[data-v="${v}"]`); if (b) b.focus();
+  }
+  function check() {
+    if (done) return newPuzzle();
+    checks++; reveal = true;
+    if (evalNode(puzzle.tree, puzzle.state)) {
+      done = true; solved++; level = solved + 1;
+      say('OUT is on. Solved! Press Enter or N for the next circuit.', 'ok');
+    } else {
+      say('OUT is still off. The lights now show each gate: find the first gate whose light is not what OUT needs, change an input, and check again.', 'bad');
+    }
+    paint();
+  }
+
+  $('board').addEventListener('click', e => { const b = e.target.closest('button'); if (b) toggle(b.dataset.v); });
+  $('check').addEventListener('click', check);
+  $('next').addEventListener('click', newPuzzle);
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toUpperCase();
+    if (k === 'ENTER') { e.preventDefault(); check(); }
+    else if (k === 'N') newPuzzle();
+    else if (k.length === 1 && k >= 'A' && k <= 'H') toggle(k);
+  });
+  newPuzzle();
+}
+</script>
+</body>
+</html>
