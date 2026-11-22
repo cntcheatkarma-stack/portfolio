@@ -7,6 +7,7 @@ Cybersecurity student and analyst with a background in high-pressure operations 
 | Project | What it is | Tech | Status |
 |---|---|---|---|
 | [HaleHound CYD build](projects/halehound/) | Handheld RF security multitool with amplified sub-GHz/2.4 GHz radios, NFC, and GPS, plus a full wiring reference and troubleshooting log | ESP32, SPI, RF hardware | In progress |
+| [SIEM tool](projects/siem-tool/) | Log parsers + YAML detection engine mapped to MITRE ATT&CK, with HTML/JSON alert reports ([repo](https://github.com/cntcheatkarma-stack/siem_tool)) | Python, SQLite, pytest | v0.1 complete |
 | [Flock ALPR detector](projects/flock-detector/) | Passive Wi-Fi + BLE scanner that detects license plate reader cameras and scores its confidence | MicroPython, ESP32-S3 | Prototype |
 | [gha-lint](projects/gha-lint/) | Linter for GitHub Actions workflows: unpinned actions, script injection, broad token permissions | Python, PyYAML, pytest | In progress |
 | [Weather station mesh node](projects/weather-station/) | Roof-mounted sensor node on a LoRa mesh, queried in plain English through a local LLM | Meshtastic, Python, local AI | Planning |
@@ -25,8 +26,7 @@ Log and packet analysis exercises. See [analyses/](analyses/).
 
 Tools I'm designing next. See [concepts/](concepts/).
 
-- [SIEM tool](concepts/siem-tool.md): log ingestion, detection rules mapped to MITRE ATT&CK, alerting
-- Backlog: PCAP analyzer, phishing analyzer, file integrity monitor, and more
+- Backlog: PCAP analyzer, phishing analyzer, file integrity monitor, dependency checker, password auditor
 
 ## Coursework
 

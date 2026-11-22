@@ -2,9 +2,7 @@
 
 Design notes for tools I'm planning. Each one moves to `projects/` once it has working code.
 
-## Detailed concepts
-
-- [SIEM tool](siem-tool.md): log collection, detection rules mapped to MITRE ATT&CK, and alerting
+Built so far: [SIEM tool](../projects/siem-tool/) (moved from concept to project).
 
 ## Ideas backlog
 
